@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
-const API_URL = "http://localhost:3001/api";
+const API_URL = window.location.origin.includes('localhost') ? "http://localhost:3001/api" : "/api";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color = "currentColor" }) => {

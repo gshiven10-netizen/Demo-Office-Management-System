@@ -162,7 +162,18 @@ app.delete('/api/penalties/:id', (req, res) => {
   });
 });
 
-const PORT = 3001;
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  }
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`OM Server running on http://localhost:${PORT}`);
+  console.log(`OM Server running on port ${PORT}`);
 });
