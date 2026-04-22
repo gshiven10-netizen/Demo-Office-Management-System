@@ -534,8 +534,8 @@ function Toast({ message, type = "info", onClose }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState(localStorage.getItem("oms_lang") || "en");
-  const [screen, setScreen] = useState("login"); // login | otp | admin | worker | register | pending
-  const [currentUser, setCurrentUser] = useState(null);
+  const [screen, setScreen] = useState(localStorage.getItem("oms_screen") || "login");
+  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem("oms_user") || "null"));
   const [pendingLogin, setPendingLogin] = useState(null);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -551,6 +551,14 @@ export default function App() {
       if(res.ok) {
         const data = await res.json();
         setUsers(data);
+        // If logged in, update current user data from the fresh list
+        if (currentUser) {
+          const updatedSelf = data.find(u => u.id === currentUser.id);
+          if (updatedSelf) {
+            setCurrentUser(updatedSelf);
+            localStorage.setItem("oms_user", JSON.stringify(updatedSelf));
+          }
+        }
         return data;
       }
     } catch (err) { console.error("Failed to load users", err); }
@@ -563,7 +571,12 @@ export default function App() {
     localStorage.setItem("oms_lang", l);
   };
 
-  useEffect(() => { refreshUsers(); }, []);
+  useEffect(() => { 
+    refreshUsers(); 
+    // Polling for updates every 30 seconds
+    const interval = setInterval(refreshUsers, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLoginSubmit = async (email, password) => {
     try {
@@ -591,16 +604,18 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) { showToast(data.error || "Invalid OTP", "error"); return; }
 
-      setCurrentUser(pendingLogin);
+      const finalUser = pendingLogin;
+      const finalScreen = finalUser.status === 'PENDING' ? "pending" : (finalUser.role === "admin" ? "admin" : "worker");
+
+      setCurrentUser(finalUser);
+      setScreen(finalScreen);
       setActiveTab("dashboard");
       
-      if (pendingLogin.status === 'PENDING') {
-        setScreen("pending");
-      } else {
-        setScreen(pendingLogin.role === "admin" ? "admin" : "worker");
-      }
+      localStorage.setItem("oms_user", JSON.stringify(finalUser));
+      localStorage.setItem("oms_screen", finalScreen);
       
-      showToast(`${t('welcome')}, ${pendingLogin.name}!`, "success");
+      showToast(`${t('welcome')}, ${finalUser.name}!`, "success");
+      refreshUsers();
     } catch (err) {
       showToast("Verification failed", "error");
     }
@@ -610,6 +625,8 @@ export default function App() {
     setCurrentUser(null);
     setPendingLogin(null);
     setScreen("login");
+    localStorage.removeItem("oms_user");
+    localStorage.removeItem("oms_screen");
     showToast("Logged out successfully", "info");
   };
 
