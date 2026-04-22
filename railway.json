@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npm run build"
   },
   "variables": {
-    "NIXPACKS_NODEJS_VERSION": "22.12.0"
+    "NIXPACKS_NODEJS_VERSION": "20.19.0"
   },
   "deploy": {
     "startCommand": "npm start",
