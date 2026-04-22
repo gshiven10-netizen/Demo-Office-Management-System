@@ -106,6 +106,38 @@ const styles = `
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ─── RESPONSIVE ────────────────────────────────────────────────────────── */
+  @media (max-width: 1024px) {
+    .dashboard-layout { grid-template-columns: 1fr; }
+    .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; z-index: 1000; transition: left 0.3s ease; box-shadow: 20px 0 50px rgba(0,0,0,0.3); }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 999; }
+    .top-nav { padding: 12px 20px; }
+    .mobile-menu-btn { display: flex !important; }
+    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  }
+
+  @media (max-width: 768px) {
+    .login-container { flex-direction: column; overflow-y: auto; }
+    .login-hero { height: 280px; padding: 40px 20px; border-radius: 0 0 40px 40px; }
+    .hero-logo-wrap { display: none; }
+    .hero-title { font-size: 2rem; }
+    .login-form-side { padding: 40px 20px; }
+    .panel-grid { grid-template-columns: 1fr !important; }
+    .card-row { flex-direction: column; }
+    .modal-content { width: 95%; margin: 10px; padding: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .stat-card { padding: 20px; }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title { font-size: 1.6rem; }
+    .top-nav h2 { font-size: 1.1rem; }
+    .btn { padding: 10px 16px; font-size: 0.9rem; }
+    .status-badge { padding: 4px 8px; font-size: 0.75rem; }
+  }
+
   :root {
     --bg: #07080f;
     --surface: #0e1120;
