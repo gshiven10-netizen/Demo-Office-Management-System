@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const transporter = nodemailer.createTransport({
   service: 'gmail', // Standard gmail setup
@@ -7,6 +8,15 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+});
+
+// Verify connection on startup
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error('[MAILER] !!! SMTP Connection Error:', error);
+  } else {
+    console.log('[MAILER] SMTP Server is ready to take our messages');
+  }
 });
 
 const sendOTPToEmail = async (email, otp) => {

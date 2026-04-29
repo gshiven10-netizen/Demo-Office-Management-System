@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
-const API_URL = window.location.origin.includes('localhost') ? "http://localhost:3001/api" : "/api";
+const API_URL = (/localhost|127\.0\.0\.1/).test(window.location.hostname) ? "http://localhost:3001/api" : "/api";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color = "currentColor" }) => {
@@ -551,7 +551,6 @@ export default function App() {
       if(res.ok) {
         const data = await res.json();
         setUsers(data);
-        // If logged in, update current user data from the fresh list
         if (currentUser) {
           const updatedSelf = data.find(u => u.id === currentUser.id);
           if (updatedSelf) {
@@ -559,9 +558,12 @@ export default function App() {
             localStorage.setItem("oms_user", JSON.stringify(updatedSelf));
           }
         }
-        return data;
+        return data || [];
       }
-    } catch (err) { console.error("Failed to load users", err); }
+    } catch (err) { 
+      console.error("Failed to load users", err); 
+    }
+    return []; // Always return an array to prevent crashes
   };
 
   const t = (key) => TRANSLATIONS[lang][key] || key;
@@ -604,19 +606,24 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) { showToast(data.error || "Invalid OTP", "error"); return; }
 
-      const finalUser = pendingLogin;
-      const finalScreen = finalUser.status === 'PENDING' ? "pending" : (finalUser.role === "admin" ? "admin" : "worker");
+      // Get latest data to ensure status is up to date
+      const allUsers = await refreshUsers();
+      const freshUser = (allUsers && allUsers.length > 0) 
+        ? allUsers.find(u => u.email === pendingLogin.email) || pendingLogin 
+        : pendingLogin;
+      
+      const finalScreen = freshUser.status === 'PENDING' ? "pending" : (freshUser.role === "admin" ? "admin" : "worker");
 
-      setCurrentUser(finalUser);
+      setCurrentUser(freshUser);
       setScreen(finalScreen);
       setActiveTab("dashboard");
       
-      localStorage.setItem("oms_user", JSON.stringify(finalUser));
+      localStorage.setItem("oms_user", JSON.stringify(freshUser));
       localStorage.setItem("oms_screen", finalScreen);
       
-      showToast(`${t('welcome')}, ${finalUser.name}!`, "success");
-      refreshUsers();
+      showToast(`${t('welcome')}, ${freshUser.name}!`, "success");
     } catch (err) {
+      console.error("OTP Verification Error:", err);
       showToast("Verification failed", "error");
     }
   };
@@ -1066,6 +1073,19 @@ function EnrollmentsPanel({ enrollments, showToast, refresh, t }) {
     } catch (err) { showToast("Approval failed", "error"); }
   };
 
+  const handleReject = async (id) => {
+    if (!window.confirm("Are you sure you want to reject and remove this application?")) return;
+    try {
+      const res = await fetch(`${API_URL}/users/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast("Application rejected and removed", "info");
+        await refresh();
+      } else {
+        showToast("Rejection failed", "error");
+      }
+    } catch (err) { showToast("Server error", "error"); }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -1101,7 +1121,7 @@ function EnrollmentsPanel({ enrollments, showToast, refresh, t }) {
                 <button className="btn btn-primary" style={{flex:1}} onClick={() => setSelected(e)}>
                    {t('approve')}
                 </button>
-                <button className="btn btn-ghost" style={{flex:1}} onClick={() => showToast("Application rejected", "info")}>
+                <button className="btn btn-ghost" style={{flex:1}} onClick={() => handleReject(e.id)}>
                    {t('reject')}
                 </button>
               </div>
