@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
-const API_URL = (/localhost|127\.0\.0\.1/).test(window.location.hostname) ? "http://localhost:3001/api" : "/api";
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? "http://localhost:3001/api" : "/api";
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color = "currentColor" }) => {
@@ -540,6 +540,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [users, setUsers] = useState([]);
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const showToast = useCallback((message, type = "info") => {
     setToast({ message, type });
@@ -581,18 +582,22 @@ export default function App() {
   }, []);
 
   const handleLoginSubmit = async (email, password) => {
+    if (!email || !password) { showToast("Enter credentials", "error"); return; }
+    setLoginLoading(true);
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
+      setLoginLoading(false);
       if (!res.ok) { showToast(data.error || "Login failed", "error"); return; }
       
       setPendingLogin(data.user);
       setScreen("otp");
       showToast(`OTP sent to your email!`, "info");
     } catch (err) {
+      setLoginLoading(false);
       showToast("Server error. Is it running?", "error");
     }
   };
@@ -642,7 +647,7 @@ export default function App() {
   return (
     <div className="oms-root">
       <style>{styles}</style>
-      {screen === "login" && <LoginPage onLogin={handleLoginSubmit} onRegister={() => setScreen("register")} showToast={showToast} t={t} lang={lang} setLang={changeLanguage} />}
+      {screen === "login" && <LoginPage onLogin={handleLoginSubmit} onRegister={() => setScreen("register")} showToast={showToast} t={t} lang={lang} setLang={changeLanguage} loading={loginLoading} />}
       {screen === "register" && <RegisterPage onBack={() => setScreen("login")} onRegistered={async (user) => { await refreshUsers(); setPendingLogin(user); setScreen("otp"); showToast(`Account created! OTP sent to your email.`, "success"); }} showToast={showToast} t={t} lang={lang} />}
       {screen === "otp" && <OTPPage user={pendingLogin} onVerify={handleOTPVerify} onBack={() => setScreen("login")} showToast={showToast} t={t} />}
       {screen === "pending" && <PendingPage user={currentUser} onLogout={handleLogout} t={t} />}
@@ -654,16 +659,14 @@ export default function App() {
 }
 
 // ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
-function LoginPage({ onLogin, onRegister, showToast, t, lang, setLang }) {
+function LoginPage({ onLogin, onRegister, showToast, t, lang, setLang, loading }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = () => {
     if (!email || !password) { showToast("Please fill all fields", "error"); return; }
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin(email, password); }, 800);
+    onLogin(email, password);
   };
 
   return (
